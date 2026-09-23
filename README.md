@@ -274,66 +274,238 @@ Também foi conferida a presença dos registros referentes ao Brasil em 2025, in
 
 ---
 
-## 8. Limitações e cuidados metodológicos
-
-### Comparabilidade entre as fontes
-
-As estatísticas brasileiras e coreanas são produzidas por instituições diferentes.
-
-Antes da construção das tabelas comparativas, será necessário verificar as definições de visitante internacional, país de residência e nacionalidade utilizadas em cada fonte.
-
-Os indicadores não devem ser tratados automaticamente como medidas metodologicamente equivalentes.
-
-### Granularidade temporal
-
-A base coreana contém totais anuais e registros mensais referentes aos mesmos períodos.
-
-A soma simultânea desses dois tipos de registros produziria dupla contagem.
-
-As análises deverão selecionar a granularidade adequada para cada indicador.
-
-### Categorias estatísticas
-
-A base coreana inclui totais gerais, agrupamentos regionais e outras categorias que não representam países individuais.
-
-Esses registros devem ser diferenciados nas consultas analíticas para evitar a duplicação de contagens.
-
-### Valores ausentes
-
-Os valores nulos da base brasileira foram preservados e documentados.
-
-Na base coreana, também foram identificados valores vazios e marcadores cujo significado ainda não foi confirmado.
-
-Totais calculados a partir de dados incompletos devem ser interpretados considerando essas limitações.
-
-### Dados de destinos turísticos
-
-A unidade federativa de entrada no Brasil não representa necessariamente o destino final visitado.
-
-Portanto, os dados de chegadas não devem ser utilizados isoladamente para inferir quais cidades ou regiões os turistas efetivamente visitaram.
 
 ---
 
-## 9. Próximas etapas
+## 8. Gold — Construção das tabelas analíticas
 
-### Gold — Preparação das tabelas analíticas
+A camada Gold foi desenvolvida para preparar os dados
+dos dois fluxos turísticos para a análise comparativa
+entre Brasil e Coreia do Sul.
 
-- Definir o período comum para as análises bilaterais.
-- Selecionar os registros correspondentes a cada fluxo turístico.
-- Organizar separadamente os indicadores anuais e mensais.
-- Construir tabelas analíticas para estudar evolução histórica e sazonalidade.
-- Verificar a comparabilidade dos indicadores entre as duas fontes.
+Foram construídas duas tabelas analíticas: uma anual
+e outra mensal.
 
-### Análise e visualização
+Os dados foram selecionados e transformados a partir
+das tabelas Silver, preservando as camadas anteriores.
 
-- Desenvolver consultas SQL para investigar os fluxos turísticos.
-- Criar visualizações da evolução das chegadas.
-- Comparar padrões temporais entre os dois países.
-- Elaborar um relatório analítico com os resultados e as limitações.
+### 8.1. Gold anual
+
+**Tabela:** `chegadas.gold.turismo_bilateral_anual`
+
+**Período:** 1990–2025
+
+**Total de registros:** 72
+
+**Granularidade:** um registro por ano e direção do fluxo.
+
+A tabela reúne os dois fluxos turísticos:
+
+- Coreia do Sul → Brasil
+- Brasil → Coreia do Sul
+
+Para o fluxo Coreia do Sul → Brasil, as chegadas foram
+agregadas por ano a partir dos registros mensais,
+considerando as diferentes UFs e vias de entrada.
+
+Para o fluxo Brasil → Coreia do Sul, foram selecionados
+exclusivamente os registros anuais da Silver coreana.
+
+Essa separação evita a dupla contagem decorrente da
+presença simultânea de totais anuais e dados mensais
+na fonte coreana.
+
+#### Tratamento dos valores ausentes
+
+Foram identificados registros com valores nulos no
+fluxo Coreia do Sul → Brasil nos anos de 1996, 1999,
+2012 e 2014.
+
+Para preservar a integridade dos indicadores, foram
+criadas as seguintes colunas:
+
+| Coluna | Descrição |
+|---|---|
+| `chegadas` | Total de chegadas, mantido como NULL quando existem registros de origem com valores ausentes. |
+| `chegadas_observadas` | Soma das contagens disponíveis, mesmo quando existem registros nulos. |
+| `total_registros` | Quantidade de registros utilizados no cálculo. |
+| `registros_nulos` | Quantidade de registros de origem com valores ausentes. |
+| `status_dados` | Indica se foram identificados registros nulos na construção do indicador. |
+
+Os totais calculados a partir de dados parcialmente
+preenchidos não são apresentados como totais completos.
+
+### 8.2. Gold mensal
+
+**Tabela:** `chegadas.gold.turismo_bilateral_mensal`
+
+**Período:** 1998–2025
+
+**Total de registros:** 672
+
+**Granularidade:** um registro por ano, mês e direção
+do fluxo turístico.
+
+A tabela mensal foi construída para permitir a análise
+da sazonalidade e da evolução dos fluxos turísticos
+ao longo dos meses.
+
+Foram realizadas as seguintes operações:
+
+- Seleção dos registros correspondentes aos dois
+  fluxos turísticos.
+- Padronização dos nomes dos meses brasileiros para
+  valores numéricos de 1 a 12.
+- Agregação das chegadas de visitantes coreanos ao
+  Brasil por ano e mês.
+- Seleção exclusiva dos registros mensais dos
+  brasileiros que chegaram à Coreia.
+- Padronização dos indicadores de qualidade e
+  das colunas das duas fontes.
+- Integração dos dois fluxos em uma única tabela.
+
+Durante a validação da cobertura temporal, foi
+identificada uma diferença de grafia no arquivo
+brasileiro de 2023: o mês de março também estava
+representado como `marco`.
+
+A regra de padronização foi ajustada para reconhecer
+ambas as grafias.
+
+Após a correção, a tabela passou a apresentar
+12 meses para cada fluxo turístico em todos os anos
+do período analisado.
 
 ---
 
-## 10. Status do projeto
+## 9. Validação cruzada da Gold
+
+Foi realizada uma comparação entre os totais anuais
+e a soma dos 12 meses correspondentes, utilizando
+as duas tabelas Gold.
+
+**Período validado:** 1998–2025
+
+**Total de comparações:** 56
+
+Cada comparação corresponde a um ano e a uma direção
+do fluxo turístico.
+
+### 9.1. Resultados
+
+| Resultado | Comparações |
+|---|---:|
+| Totais coincidentes sem registros nulos | 53 |
+| Totais coincidentes com registros nulos | 3 |
+| Divergências numéricas | 0 |
+| Total | 56 |
+
+Não foram identificadas divergências numéricas entre
+os totais anuais e as somas mensais no período
+de 1998 a 2025.
+
+As três comparações que apresentaram coincidência
+numérica com registros nulos pertencem ao fluxo
+Coreia do Sul → Brasil:
+
+| Ano | Registros nulos |
+|---|---:|
+| 1999 | 12 |
+| 2012 | 36 |
+| 2014 | 12 |
+
+Nesses anos, a coincidência foi verificada entre
+as somas dos valores disponíveis, e não entre
+totais comprovadamente completos.
+
+O ano de 1996 também apresenta 36 registros nulos
+no fluxo Coreia do Sul → Brasil, mas não integra
+a validação cruzada, pois está fora do período
+mensal comum adotado para o comparativo.
+
+Os anos de 1990 a 1997 permanecem disponíveis na
+tabela Gold anual.
+
+### 9.2. Limitações da validação
+
+A coincidência entre os totais anuais e mensais
+demonstra consistência aritmética entre as tabelas
+construídas, mas não comprova a completude estatística
+das fontes originais.
+
+Também não garante que as duas instituições utilizem
+definições metodológicas equivalentes de visitantes
+internacionais.
+
+Essas limitações deverão ser consideradas na
+interpretação dos resultados.
+
+---
+
+## 10. Limitações metodológicas
+
+As principais limitações identificadas durante
+a construção do pipeline são:
+
+**Comparabilidade das fontes:** as estatísticas
+brasileiras e coreanas são produzidas por instituições
+diferentes. As definições de país de origem,
+residência e nacionalidade precisam ser verificadas
+antes de interpretar os fluxos como diretamente
+comparáveis.
+
+**Valores ausentes:** a base brasileira apresenta
+registros sem contagem de chegadas em anos específicos.
+Essas ausências foram preservadas e identificadas
+nos indicadores analíticos.
+
+**Convenções numéricas da fonte coreana:** alguns
+valores apresentados entre parênteses, com sinal
+negativo ou com hífen não tiveram sua interpretação
+estatística confirmada. Os valores originais foram
+preservados na Silver.
+
+**Granularidade temporal:** a fonte coreana contém
+registros anuais e mensais referentes aos mesmos
+períodos. A seleção inadequada dessas informações
+pode resultar em dupla contagem.
+
+**Unidades federativas:** as UFs presentes nos dados
+brasileiros representam locais de entrada dos
+visitantes, não necessariamente os destinos turísticos
+efetivamente visitados.
+
+---
+
+## 11. Próximas etapas
+
+### Análise exploratória
+
+- Investigar a evolução histórica dos dois fluxos
+  turísticos por meio de consultas SQL e Python.
+- Analisar a sazonalidade das chegadas internacionais.
+- Examinar variações anuais e mensais.
+- Investigar períodos de crescimento e retração.
+- Considerar as limitações e os registros incompletos
+  na interpretação dos indicadores.
+
+### Visualização de dados
+
+- Criar gráficos de evolução histórica.
+- Desenvolver visualizações de sazonalidade.
+- Construir um dashboard para apresentação
+  dos resultados.
+
+### Relatório final
+
+- Apresentar a metodologia utilizada.
+- Sintetizar os principais resultados da análise.
+- Discutir as limitações das fontes.
+- Documentar as conclusões do estudo.
+
+---
+
+## 12. Status do projeto
 
 | Etapa | Status |
 |---|---|
@@ -341,12 +513,20 @@ Portanto, os dados de chegadas não devem ser utilizados isoladamente para infer
 | Bronze — Ingestão | Concluída |
 | Silver Brasil | Concluída |
 | Silver Coreia | Concluída |
-| Gold — Tabelas analíticas | Não iniciada |
-| Análise e visualização | Não iniciada |
+| Gold anual | Concluída |
+| Gold mensal | Concluída |
+| Validação cruzada da Gold | Concluída |
+| Documentação das tabelas Gold | Concluída |
+| Análise exploratória | Não iniciada |
+| Visualização e dashboard | Não iniciados |
 | Relatório final | Não iniciado |
+
+**Status geral:** pipeline de engenharia de dados
+concluído. Próxima fase: análise exploratória
+dos fluxos turísticos bilaterais.
 
 ---
 
-## 11. Autoria
+## 13. Autoria
 
 Projeto independente de engenharia e análise de dados desenvolvido para fins de estudo e portfólio, com foco na integração de dados oficiais sobre o turismo bilateral entre Brasil e Coreia do Sul.
